@@ -1,0 +1,5 @@
+[33m9dfe9cc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/fix-types-gates[m[33m, [m[1;31morigin/feat/fix-types-gates[m[33m)[m fix(types,gates): export TrendFilter + correct import path
+[33m7176c4d[m fix(types,gates): export TrendFilter + update gates helpers; update tsconfig
+[33m54f41cc[m ci: trigger workflow
+[33m1ccfcc4[m ci: trigger workflow
+[33m0123198[m types: export TrendFilter; update gates helpers
