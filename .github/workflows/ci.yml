@@ -1,4 +1,4 @@
-name: CI
+name: build-test
 
 on:
   pull_request:
@@ -9,31 +9,23 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-
     steps:
-      # 1) ดึงซอร์สของ PR มาลงเครื่อง runner
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 2) ตั้ง Node ตามไฟล์ .nvmrc (เราจะล็อกเวอร์ชันไว้ เช่น 20.19.1)
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # ใช้ .nvmrc เพื่อล็อก Node 20.19.1
+      - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      # 3) ติดตั้ง dependencies แบบล็อกตาม package-lock (เร็วและแม่นยำ)
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (with dev)
+        run: npm ci --include=dev
 
-      # 4) เช็ก TypeScript (มีค่อยรัน)
       - name: Type check
         run: npm run typecheck --if-present
 
-      # 5) รันเทสต์ (มีค่อยรัน)
-      - name: Run tests
-        run: npm test --if-present
-
-      # 6) Build โปรเจ็กต์ (มีค่อยรัน)
       - name: Build
         run: npm run build --if-present
+
+      - name: Run tests
+        run: npm test --if-present
