@@ -1,0 +1,12 @@
+{
+  "issuer": "AngelTeam",
+  "issuedAt": "2025-10-04T16:01:51.085Z",
+  "userId": "AngelTeamLeader",
+  "plan": "pro",
+  "expiresAt": "2025-12-31T16:59:59.000Z",
+  "features": [
+    "forecast",
+    "alert"
+  ],
+  "signature": "e60baaefc8355cb65fc9d5d3fd49a78f018d946ef894ff141882d71451e8eb4d"
+}

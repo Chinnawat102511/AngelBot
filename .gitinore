@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+.vite/
+server/licenses/
+server/tmp/
