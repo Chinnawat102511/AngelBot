@@ -1,16 +1,12 @@
-# node / build
-node_modules/
-dist/
-.vite/
-
-# env / local
-.env
-.env.*
-!.env.example
-
 # server runtime
 server/licenses/
 server/tmp/
+
+# dependencies & build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
 
 # logs
 npm-debug.log*
@@ -18,9 +14,21 @@ yarn-debug.log*
 pnpm-debug.log*
 *.log
 
-# IDE
+# env files
+.env
+.env.local
+.env.*.local
+
+# IDE & OS junk
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-NUL
+
+# --- Windows reserved device names (anywhere in the tree) ---
+**/[Cc][Oo][Nn]         **/[Cc][Oo][Nn].*
+**/[Pp][Rr][Nn]         **/[Pp][Rr][Nn].*
+**/[Aa][Uu][Xx]         **/[Aa][Uu][Xx].*
+**/[Nn][Uu][Ll]         **/[Nn][Uu][Ll].*
+**/[Cc][Oo][Mm][1-9]    **/[Cc][Oo][Mm][1-9].*
+**/[Ll][Pp][Tt][1-9]    **/[Ll][Pp][Tt][1-9].*
