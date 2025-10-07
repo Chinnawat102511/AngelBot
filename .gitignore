@@ -1,26 +1,21 @@
-# server runtime 
 server/licenses/
 server/tmp/
-
-# dependencies & build output
 node_modules/
 dist/
 coverage/
 *.tsbuildinfo
-
-# logs
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 *.log
-
-# env files
 .env
 .env.local
 .env.*.local
-
-# IDE & OS junk
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+.env
+.env.*
+download/
+*.log
