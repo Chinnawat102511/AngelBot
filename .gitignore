@@ -1,25 +1,21 @@
-# node / build
-node_modules/
-dist/
-.vite/
-
-# env / local
-.env
-.env.*
-!.env.example
-
-# server runtime
 server/licenses/
 server/tmp/
-
-# logs
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 *.log
-
-# IDE
+.env
+.env.local
+.env.*.local
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+.env
+.env.*
+download/
+*.log
