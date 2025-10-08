@@ -1,33 +1,76 @@
 {
-  "name": "angel-forecast-suite",
-  "private": true,
+  "name": "angelbot",
   "version": "1.0.0",
+  "description": "AngelBot License Management & Forecast System",
+  "private": true,
   "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests",
-    "build": "vite build",
-    "preview": "vite preview",
-    "server": "node server/index.js",
-    "server:dev": "nodemon server/index.js"
+  "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
   },
+  "scripts": {
+    "// dev app": "-------------------- App (Vite/React) --------------------",
+    "dev": "vite",
+
+    "// build": "build (prod = default mode), build:local ใช้ .env.preview-local",
+    "build": "vite build",
+    "build:local": "vite build --mode preview-local",
+
+    "// preview": "5174 = local build, 5175 = prod build",
+    "preview": "vite preview --port 5174 --strictPort",
+    "preview:local": "npm run build:local && npm run preview",
+    "preview:prod": "npm run build && vite preview --port 5175 --strictPort",
+
+    "// server": "-------------------- License server / tools --------------------",
+    "preserver": "node scripts/auto-license.js",
+    "start": "node server/server.js",
+    "server": "npm run preserver && node server/server.js",
+
+    "// license jobs": "auto-refresh / check / fetch / near-expiry / generate",
+    "license:auto": "node scripts/auto-license.js",
+    "license:auto:refresh": "node scripts/auto-license-refresh.js",
+    "license:near": "node scripts/near-expiry-notify.js",
+    "license:fetch": "node scripts/fetch-and-verify.js",
+    "license:check": "node scripts/license-check.js",
+    "license:gen": "node scripts/generate-license.js",
+
+    "// windows helpers (.bat wrappers)": "start/stop server & generate/fetch/verify/refresh",
+    "license:server": "cmd /c scripts\\start-license-server.bat",
+    "license:stop": "node scripts/stop-server.js",
+    "license:stop:bat": "cmd /c scripts\\stop-license-server.bat",
+    "license:gen:bat": "cmd /c scripts\\gen-license.bat",
+    "license:fetch:bat": "cmd /c scripts\\fetch-license.bat",
+    "license:verify:bat": "cmd /c scripts\\verify-license.bat",
+    "license:refresh:bat": "cmd /c scripts\\refresh-license.bat",
+    "license:admin:issue": "node scripts/issue-and-upload.js --base=http://localhost:3001 --owner=AngelTeam --plan=pro --days=30",
+    "license:admin:issue:bat": "cmd /c scripts\\admin-issue-license.bat",
+
+    "// convenience": "start/stop/gen shortcuts",
+    "start_server:bat": "cmd /c start_server.bat",
+    "stop_server:bat": "cmd /c stop_server.bat",
+    "gen_license:bat": "cmd /c gen_license.bat --owner=AngelTeam --plan=pro --days=30",
+    "gen_license:exp": "cmd /c gen_license.bat --owner=AngelTeam --plan=pro --expires=2025-12-31",
+
+    "test": "echo \"No test specified\" && exit 0"
+  },
+  "keywords": ["angelbot", "license", "forecast", "angelteam"],
+  "author": "Angel Team",
+  "license": "MIT",
   "dependencies": {
-    "cors": "2.8.5",
-    "dayjs": "1.11.13",
-    "express": "4.19.2",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-router-dom": "6.27.0"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "node-fetch": "^3.3.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.3"
   },
   "devDependencies": {
-    "@types/node": "22.7.4",
-    "@types/react": "18.3.25",
-    "@types/react-dom": "18.3.7",
-    "@vitejs/plugin-react": "4.3.1",
-    "nodemon": "3.1.7",
-    "typescript": "5.6.2",
-    "vite": "5.4.8",
-    "vitest": "^3.2.4"
+    "@types/node": "^24.7.0",
+    "@types/react": "^19.2.1",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9"
   }
 }

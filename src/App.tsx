@@ -1,43 +1,124 @@
-// เพิ่มบรรทัดนี้ด้านบน
-import AdminTab from './admin/AdminTab'
-import React from 'react'
-import { Routes, Route, Link } from 'react-router-dom'
-import Home from '@pages/index'
-import TF1M from '@pages/TF1M'
-import TF5M from '@pages/TF5M'
+// src/App.tsx
+import { useEffect, useState } from "react";
+import LicenseBanner from "./components/LicenseBanner";
+import { LicenseProvider } from "./context/LicenseContext";
+import { LicenseGate } from "./components/LicenseGate";
 
-export default function App() {
+// Router
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+
+// เพจ
+import Home from "./pages/Home";
+import AdminPage from "./pages/AdminPage";
+
+function Layout({
+  theme,
+  setTheme,
+  children,
+}: {
+  theme: "light" | "dark";
+  setTheme: (t: "light" | "dark") => void;
+  children: React.ReactNode;
+}) {
+  const loc = useLocation();
+
   return (
-    <div style={{ minHeight: '100dvh', display: 'grid', gridTemplateRows: 'auto 1fr', background: '#0b0f14' }}>
-      <header style={{ padding: '14px 18px', borderBottom: '1px solid #17202a', display: 'flex', gap: 16, alignItems: 'center' }}>
-        <div style={{ fontWeight: 800, letterSpacing: .3, color: '#e8edf2' }}>Angel Forecast</div>
-        <nav style={{ display: 'flex', gap: 10 }}>
-          <nav style={{ display: 'flex', gap: 10 }}>
-  <Link to="/" style={navLink}>หน้าหลัก</Link>
-  <Link to="/tf1m" style={navLink}>TF1M</Link>
-  <Link to="/tf5m" style={navLink}>TF5M</Link>
-  <Link to="/admin" style={navLink}>Admin</Link> {/* <= เพิ่มตรงนี้ */}
-</nav>
-        </nav>
-        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#9db2c7' }}>Angel Mode: <b>Non</b></div>
-      </header>
-      <main style={{ padding: 18 }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/tf1m" element={<TF1M />} />
-          <Route path="/tf5m" element={<TF5M />} />
-          <Route path="/admin" element={<AdminTab />} />
-        </Routes>
-      </main>
+    <div
+      className={`min-h-screen flex flex-col ${
+        theme === "dark"
+          ? "bg-gray-900 text-gray-100"
+          : "bg-gradient-to-b from-gray-50 to-white text-gray-900"
+      }`}
+    >
+      {/* แบนเนอร์สถานะ License */}
+      <LicenseBanner />
+
+      <div className="max-w-5xl mx-auto px-4 py-10 flex-1 w-full grid gap-6">
+        {/* Header */}
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold">AngelBot License Console</h1>
+
+            {/* เมนูนำทาง */}
+            <nav className="text-sm flex gap-3">
+              <Link
+                to="/"
+                className={`px-2 py-1 rounded border ${
+                  loc.pathname === "/"
+                    ? "bg-gray-200 dark:bg-gray-800"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                Home
+              </Link>
+              <Link
+                to="/admin"
+                className={`px-2 py-1 rounded border ${
+                  loc.pathname.startsWith("/admin")
+                    ? "bg-gray-200 dark:bg-gray-800"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                Admin
+              </Link>
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-sm opacity-70">
+              API: <code>http://localhost:3001</code>
+            </div>
+            <button
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              className="border border-gray-400 rounded px-2 py-1 text-xs hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+              title={theme === "light" ? "Switch to dark" : "Switch to light"}
+            >
+              {theme === "light" ? "🌙 Dark" : "☀️ Light"}
+            </button>
+          </div>
+        </header>
+
+        {/* เนื้อหาเพจ */}
+        {children}
+
+        {/* Footer */}
+        <footer className="pt-6 text-xs opacity-60 text-center">
+          © AngelTeam — License System Connected
+        </footer>
+      </div>
     </div>
-  )
+  );
 }
 
-const navLink: React.CSSProperties = {
-  color: '#9bd0ff',
-  textDecoration: 'none',
-  padding: '6px 10px',
-  borderRadius: 10,
-  background: 'rgba(155,208,255,.08)',
-  border: '1px solid rgba(155,208,255,.15)'
+export default function App() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  // เปลี่ยนคลาสบน <body> เพื่อให้โหมดสีทำงาน
+  useEffect(() => {
+    document.body.classList.remove("light", "dark");
+    document.body.classList.add(theme === "dark" ? "dark" : "light");
+  }, [theme]);
+
+  return (
+    <LicenseProvider>
+      <LicenseGate>
+        <BrowserRouter>
+          <Layout theme={theme} setTheme={setTheme}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
+      </LicenseGate>
+    </LicenseProvider>
+  );
 }
