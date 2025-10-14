@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "holder": "AngelTeam",
+  "ttlDays": 30,
+  "issuedAt": "2025-10-11T17:01:51.891Z",
+  "expireAt": "2025-11-10T17:01:51.891Z",
+  "service": "license-forecast",
+  "base": "http://localhost:3001",
+  "path": "C:\\AngelBot\\angelbot.ui\\licenses\\license_output_1d.json",
+  "pong": true
+}

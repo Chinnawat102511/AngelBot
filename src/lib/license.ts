@@ -1,4 +1,3 @@
-// src/lib/license.ts
 // -------- Types --------
 export type LicenseJson = {
   id: string;
@@ -15,12 +14,15 @@ export type LicenseState =
   | { status: "expired"; license?: LicenseJson }
   | { status: "error"; message: string };
 
-// -------- Utils --------
-export const BASE_URL =
-  import.meta.env.VITE_LICENSE_BASE_URL || "http://localhost:3001";
+// -------- Config / Helpers --------
+const RAW_BASE = (import.meta.env.VITE_LICENSE_BASE_URL as string | undefined)?.trim() || "";
+const BASE = RAW_BASE.replace(/\/+$/, ""); // ตัด / ท้าย
 
-export function resolveBaseUrl(): string {
-  return BASE_URL;
+// ถ้าไม่ได้ตั้ง BASE → ใช้เส้นทางสัมพัทธ์ "/api/..." แล้วให้ Vite proxy จัดการ
+function apiUrl(path: string) {
+  if (!path.startsWith("/")) path = "/" + path;
+  if (BASE) return `${BASE}${path}`;
+  return path; // => "/api/...."
 }
 
 export function calcRemainingDays(iso: string): number {
@@ -38,9 +40,7 @@ export function formatDateLocal(dateStr: string, locale = "th-TH") {
 // -------- Core fetchers --------
 export async function fetchLatestLicense(): Promise<LicenseState> {
   try {
-    const r = await fetch(`${resolveBaseUrl()}/api/license/latest`, {
-      method: "GET",
-    });
+    const r = await fetch(apiUrl("/api/license/latest"), { credentials: "include" });
     if (r.status === 404) return { status: "missing" };
     if (!r.ok) return { status: "error", message: `HTTP ${r.status}` };
 
@@ -53,13 +53,15 @@ export async function fetchLatestLicense(): Promise<LicenseState> {
   }
 }
 
+/** อัปโหลดไฟล์ใบอนุญาต (.json) → เซิร์ฟเวอร์ตอบ { ok, license } หรือ license ตรง ๆ */
 export async function uploadLicenseFile(file: File): Promise<LicenseState> {
   const form = new FormData();
   form.append("file", file);
 
-  const r = await fetch(`${resolveBaseUrl()}/api/license/upload`, {
+  const r = await fetch(apiUrl("/api/license/upload"), {
     method: "POST",
     body: form,
+    credentials: "include",
   });
 
   if (r.status === 400) {
@@ -68,7 +70,9 @@ export async function uploadLicenseFile(file: File): Promise<LicenseState> {
   }
   if (!r.ok) return { status: "error", message: `HTTP ${r.status}` };
 
-  const lic = (await r.json()) as LicenseJson;
+  const data = await r.json();
+  const lic = (data?.license ?? data) as LicenseJson;
+
   const remain = calcRemainingDays(lic.valid_until);
   if (remain < 0) return { status: "expired", license: lic };
   return { status: "ok", license: lic, remainingDays: remain };

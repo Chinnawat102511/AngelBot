@@ -20,6 +20,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
 // ⬇️ ค่อยติดตั้ง routes หลังจากมี app แล้ว
 app.use("/api/license/generate", generateRoute);
 app.use("/api/license/verify", verifyRoute); // <--- เพิ่มตรงนี้ตามลำดับ

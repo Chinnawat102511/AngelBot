@@ -1,0 +1,71 @@
+/* ===== Toast: top-right (ไม่บัง layout) ===== */
+.ab-toast-container{
+  position: fixed;
+  top: 14px;             /* ขวาบน */
+  right: 14px;
+  display: grid;
+  gap: 8px;
+  z-index: 9999;
+}
+.ab-toast-container > *{
+  pointer-events: none;  /* คลิกทะลุ */
+}
+
+/* ===== License banner (สองบรรทัด) ใช้ได้ทั้ง toolbar และ side ===== */
+.ab-license-banner{
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.1;
+  border: 1px solid #d1fae5;
+  background: #ecfdf5;   /* default ok */
+  color: #065f46;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+.ab-license-banner .row1{ font-weight: 600; }
+.ab-license-banner .row2{ opacity: .85; }
+
+/* near / expired โทนสี */
+.ab-license-banner[data-tone="near"]{
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+.ab-license-banner[data-tone="expired"]{
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+/* ===== Toolbar alignment ===== */
+.ab-toolbar{
+  display: grid;
+  grid-template-columns: auto auto 1fr auto; /* ซ้าย, reset, input, ขวา(license+generate) */
+  gap: 10px;
+  align-items: center;
+}
+.ab-toolbar-right{
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ===== ความสูงการ์ดสถานะให้เท่ากัน ===== */
+.ab-kpi-card--status{
+  min-height: 88px;   /* ปรับ 80–96 ได้ */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* จุดเล็กๆ สีสถานะที่ใช้อยู่แล้ว */
+.status-dot{
+  display:inline-block;
+  width:10px;height:10px;border-radius:50%;margin-right:6px;
+}
+.status-connected{ background:#22c55e; }
+.status-disconnected{ background:#ef4444; }

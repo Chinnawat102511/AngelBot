@@ -1,15 +1,24 @@
-// src/components/LicenseBanner.tsx
-import * as React from "react";
 import { useEffect, useState } from "react";
-import { getLicenseState, formatDateLocal } from "../lib/license"; // 👈 เอา resolveBaseUrl ออก
+import { getLicenseState, formatDateLocal } from "../lib/license";
 
-export default function LicenseBanner() {
-  const [status, setStatus] = useState<"ok" | "near" | "expired" | "loading">("loading");
+type Stat = "ok" | "near" | "expired" | "loading";
+
+/**
+ * แสดง 2 บรรทัดตามที่ต้องการ:
+ * บรรทัด 1:  License: OK | Near expiry | Expired
+ * บรรทัด 2:  Expire: DD/MM/YYYY
+ *
+ * ใช้ที่ไหนก็ได้: ใน header, toolbar หรือมุมซ้าย
+ */
+export default function LicenseBanner({
+  className = "",
+}: { className?: string }) {
+  const [status, setStatus] = useState<Stat>("loading");
   const [validUntil, setValidUntil] = useState<string>("");
 
   useEffect(() => {
     const run = async () => {
-      const data = await getLicenseState(); // 👈 ไม่ต้องส่ง resolveBaseUrl()
+      const data = await getLicenseState();
       setValidUntil(data.valid_until ? formatDateLocal(data.valid_until) : "");
       if (!data.valid) setStatus("expired");
       else if (data.nearExpiry) setStatus("near");
@@ -22,20 +31,21 @@ export default function LicenseBanner() {
 
   if (status === "loading") return null;
 
-  const base =
-    "mx-2 mt-2 mb-0 rounded-xl border px-3 py-2 text-sm font-medium backdrop-blur transition-all";
-  const theme =
-    status === "ok"
-      ? `${base} border-emerald-200 bg-emerald-100/70 text-emerald-900`
-      : status === "near"
-      ? `${base} border-amber-200 bg-amber-100/70 text-amber-900`
-      : `${base} border-rose-200 bg-rose-100/70 text-rose-900`;
+  const tone =
+    status === "ok" ? "ok" : status === "near" ? "near" : "expired";
 
   return (
-    <div className={theme}>
-      {status === "ok" && <>✅ License OK — หมดอายุ: {validUntil}</>}
-      {status === "near" && <>⚠️ ใกล้หมดอายุ — หมดอายุ: {validUntil}</>}
-      {status === "expired" && <>⛔ หมดอายุแล้ว — กรุณาอัปโหลด/ต่ออายุ</>}
+    <div
+      className={`ab-license-banner ${className}`}
+      data-tone={tone}
+      title={validUntil ? `Expire: ${validUntil}` : ""}
+    >
+      <div className="row1">
+        {status === "ok" && "License: OK"}
+        {status === "near" && "License: Near expiry"}
+        {status === "expired" && "License: Expired"}
+      </div>
+      <div className="row2">{validUntil ? `Expire: ${validUntil}` : ""}</div>
     </div>
   );
 }

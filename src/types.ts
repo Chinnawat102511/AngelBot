@@ -1,25 +1,24 @@
-// src/types.ts
-export type TF = "1m" | "5m";
+export type TF = '1m' | '5m';
 
-export type TrendFilter = "STRICT" | "WEAK" | "OFF";
+export type TrendFilter = 'STRICT' | 'WEAK' | 'OFF';
 
 export type StrategyConfig = {
   name: string;
   signalStrength?: number;
-  ma?: { enabled?: boolean; type?: "SMA" | "EMA" | "WMA" | "HMA"; length?: number; bias?: "NONE" | "UP" | "DOWN" };
-  macd?: { enabled?: boolean; fast?: number; slow?: number; signal?: number; mode?: "CROSS" | "TREND" };
-  rsi?: { enabled?: boolean; length?: number; ob?: number; os?: number; mode?: "OBOS" | "DIVERGENCE" };
+  ma?: { enabled?: boolean; type?: 'SMA' | 'EMA' | 'WMA' | 'HMA'; length?: number; bias?: 'NONE' | 'UP' | 'DOWN' };
+  macd?: { enabled?: boolean; fast?: number; slow?: number; signal?: number; mode?: 'CROSS' | 'TREND' };
+  rsi?: { enabled?: boolean; length?: number; ob?: number; os?: number; mode?: 'OBOS' | 'DIVERGENCE' };
   ai?: { conf: number; gap: number };
   mbf?: { conf: number; gap: number };
 };
 
 export type MgConfig = {
-  mode: "FIXED" | "MULTIPLIER" | "CUSTOM";
+  mode: 'FIXED' | 'MULTIPLIER' | 'CUSTOM';
   base: number;
   mult: number;
   steps: number;
   customList: number[];
-  scope: "COMBINED" | "SEPARATE";
+  scope: 'COMBINED' | 'SEPARATE';
   stepByPairOnly: boolean;
 };
 
@@ -36,10 +35,10 @@ export type Trade = {
   ts: number;
   asset: string;
   tf: TF;
-  side: "CALL" | "PUT";
+  side: 'CALL' | 'PUT';
   amount: number;
   mgStep: number;
-  result: "WIN" | "LOSE" | "DRAW";
+  result: 'WIN' | 'LOSE' | 'DRAW';
   payout: number;
   pnl: number;
   strategy: string;
@@ -54,5 +53,29 @@ export type Persisted = {
   filters: Filters;
   risk: Risk;
   orderIntervalSec: number;
-  scheduler?: { enabled: boolean; start: string; stop: string; workdays: boolean[]; skipWeekend: boolean; resetTime: string };
+  scheduler?: {
+    enabled: boolean;
+    start: string;
+    stop: string;
+    workdays: boolean[];
+    skipWeekend: boolean;
+    resetTime: string;
+  };
 };
+
+// เพิ่มสำหรับหน้า Dashboard ให้ใช้ได้จริง
+export interface EngineStats {
+  orders: number;
+  win: number;
+  lose: number;
+  draw: number;
+  session_pnl: number;
+}
+
+export interface EngineStatus {
+  running: boolean;
+  connected: boolean;
+  balance: number;
+  account_type: string;
+  stats: EngineStats;
+}

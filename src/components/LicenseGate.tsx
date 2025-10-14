@@ -4,14 +4,14 @@ import { formatDateLocal } from "../lib/license";
 
 type Props = { children: React.ReactNode };
 
-export const LicenseGate: React.FC<Props> = ({ children }) => {
+const LicenseGate: React.FC<Props> = ({ children }) => {
   const { state, refresh, upload } = useLicense();
 
   if (state.status === "loading") {
     return (
       <div style={{ padding: 24 }}>
         <h2>⌛ กำลังตรวจสอบ License...</h2>
-        <p className="opacity-70">โปรดรอสักครู่</p>
+        <p style={{ opacity: 0.7 }}>โปรดรอสักครู่</p>
       </div>
     );
   }
@@ -31,16 +31,12 @@ export const LicenseGate: React.FC<Props> = ({ children }) => {
     return (
       <div style={{ padding: 24 }}>
         <h2>🔒 ต้องมี License ที่ยังไม่หมดอายุ</h2>
-        {lic && (
-          <p style={{ marginBottom: 8 }}>
-            หมดอายุ: {formatDateLocal(lic.valid_until)}
-          </p>
-        )}
+        {lic && <p style={{ marginBottom: 8 }}>หมดอายุ: {formatDateLocal(lic.valid_until)}</p>}
         <label style={{ display: "inline-block", marginTop: 8 }}>
           <span>อัปโหลดไฟล์ License (.json)</span>
           <input
             type="file"
-            accept="application/json"
+            accept="application/json,.json"
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) void upload(f);
@@ -55,8 +51,8 @@ export const LicenseGate: React.FC<Props> = ({ children }) => {
     );
   }
 
-  // status === "ok"
   return <>{children}</>;
 };
 
 export default LicenseGate;
+export { LicenseGate }; // ถ้าหน้าอื่นของพี่ยัง import แบบ named อยู่

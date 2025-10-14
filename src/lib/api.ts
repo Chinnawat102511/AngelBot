@@ -1,7 +1,7 @@
 // src/lib/api.ts
-// lightweight API client with nice errors + license handling
+// Lightweight API client for AngelBot UI (with admin-cookie support)
 
-// ---------- Error types ----------
+/* ── Errors ───────────────────────────────────────────── */
 export class LicenseError extends Error {
   code = "license_expired";
   constructor(message = "License expired or invalid. Please upload a new license.") {
@@ -9,118 +9,230 @@ export class LicenseError extends Error {
     this.name = "LicenseError";
   }
 }
-
+export class APIError<T = unknown> extends Error {
+  status: number;
+  payload?: T;
+  constructor(status: number, message: string, payload?: T) {
+    super(message);
+    this.name = "APIError";
+    this.status = status;
+    this.payload = payload;
+  }
+}
 export function isLicenseError(e: unknown): e is LicenseError {
   return e instanceof LicenseError || (typeof e === "object" && !!e && (e as any).code === "license_expired");
 }
 
-// ---------- base url & url builder ----------
-/** Base URL ของเซิร์ฟเวอร์ (ใช้ Vite env ถ้ามี) */
+/* ── Base URL & URL builder ───────────────────────────── */
 export function apiBase(): string {
-  const base =
-    (import.meta as any)?.env?.VITE_LICENSE_BASE_URL ||
-    (typeof process !== "undefined" && (process as any).env?.VITE_LICENSE_BASE_URL) ||
-    "http://localhost:3001";
-  // ตัดท้าย "/" กันพลาด
-  return String(base).replace(/\/+$/, "");
+  const v = (import.meta as any)?.env?.VITE_LICENSE_BASE_URL;
+  const base = (v && String(v)) || "http://localhost:3001";
+  return base.replace(/\/+$/, "");
 }
-
-/** สร้าง URL จาก path (รองรับ query object) */
 export function buildUrl(path: string, query?: Record<string, any>): string {
   const base = apiBase();
-  const url = new URL(path.startsWith("/") ? path : `/${path}`, base);
+  const u = new URL(path.startsWith("/") ? path : `/${path}`, base);
   if (query) {
-    Object.entries(query).forEach(([k, v]) => {
-      if (v === undefined || v === null) return;
-      url.searchParams.set(k, String(v));
-    });
+    for (const [k, v] of Object.entries(query)) {
+      if (v == null) continue;
+      u.searchParams.set(k, String(v));
+    }
   }
-  return url.toString();
+  return u.toString();
 }
 
-// ---------- response handling ----------
-/** จัดการ response + โยน error ที่อ่านง่าย (โดยเฉพาะ license 403) */
+/* ── Fetch helpers ────────────────────────────────────── */
+type TimeoutInit = RequestInit & { __cancelTimeout?: () => void };
+
+const withCreds = (init?: RequestInit): TimeoutInit =>
+  ({
+    credentials: "include",
+    cache: "no-store",
+    ...(init || {}),
+  } as TimeoutInit);
+
+function withTimeout(init?: RequestInit, ms?: number): { init: TimeoutInit } {
+  const i = withCreds(init);
+  if (!ms || ms <= 0) return { init: i };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  i.signal = controller.signal;
+  (i as TimeoutInit).__cancelTimeout = () => clearTimeout(timer);
+  return { init: i };
+}
+
+function defaultHeaders(h?: HeadersInit): HeadersInit {
+  return {
+    Accept: "application/json",
+    "X-Requested-With": "AngelBotUI",
+    ...(h || {}),
+  };
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   const text = await res.text();
   let data: any = undefined;
-  try {
-    data = text ? JSON.parse(text) : undefined;
-  } catch {
-    // ไม่เป็นไร ถ้าไม่ใช่ JSON
+
+  const ctype = res.headers.get("content-type") || "";
+  if (ctype.includes("application/json")) {
+    try { data = text ? JSON.parse(text) : undefined; } catch { data = undefined; }
+  } else {
+    try { data = text ? JSON.parse(text) : undefined; } catch { data = undefined; }
   }
 
-  if (res.status === 403 && (data?.error === "license_expired" || data?.message?.toLowerCase?.().includes("license"))) {
-    const err = new LicenseError(data?.message);
+  const msg = (data?.message ?? data?.error ?? "").toString().toLowerCase();
+
+  if (res.status === 403 || (res.status === 401 && msg.includes("license"))) {
+    const err = new LicenseError(data?.message || "License error");
     (err as any).code = "license_expired";
     throw err;
   }
 
   if (!res.ok) {
-    const message = data?.error || data?.message || `API error ${res.status}: ${res.statusText}`;
-    const e = new Error(message);
-    (e as any).status = res.status;
-    (e as any).payload = data;
-    throw e;
+    const message = data?.message || data?.error || `API error ${res.status}: ${res.statusText}`;
+    throw new APIError(res.status, message, data);
   }
 
   return (data as T) ?? ({} as T);
 }
 
-/** timeout ด้วย AbortController (เลือกใส่ได้) */
-function withTimeout(init?: RequestInit, ms?: number): { init: RequestInit; controller?: AbortController } {
-  if (!ms || ms <= 0) return { init: init || {} };
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  const composed: RequestInit = { ...(init || {}), signal: controller.signal };
-  // cleanup เมื่อ fetch จบ
-  (composed as any).__cancelTimeout = () => clearTimeout(timer);
-  return { init: composed, controller };
-}
-
-// ---------- HTTP helpers ----------
-/** เรียก GET */
-export async function get<T>(path: string, query?: Record<string, any>, init?: RequestInit, timeoutMs?: number): Promise<T> {
+export async function get<T>(
+  path: string,
+  query?: Record<string, any>,
+  init?: RequestInit,
+  timeoutMs?: number
+): Promise<T> {
   const url = buildUrl(path, query);
-  const { init: i } = withTimeout({ ...(init || {}), method: "GET" }, timeoutMs);
+  const { init: i } = withTimeout({ ...(init || {}), method: "GET", headers: defaultHeaders(init?.headers) }, timeoutMs);
   const res = await fetch(url, i);
   (i as any).__cancelTimeout?.();
   return handleResponse<T>(res);
 }
 
-/** เรียก POST (JSON) */
-export async function postJson<T>(path: string, body: unknown, init?: RequestInit, timeoutMs?: number): Promise<T> {
+export async function postJson<T>(
+  path: string,
+  body?: unknown,
+  init?: RequestInit,
+  timeoutMs?: number
+): Promise<T> {
   const url = buildUrl(path);
-  const headers = { "Content-Type": "application/json", ...(init?.headers || {}) };
-  const { init: i } = withTimeout({ ...(init || {}), method: "POST", headers, body: JSON.stringify(body) }, timeoutMs);
+  const headers = { "Content-Type": "application/json", ...defaultHeaders(init?.headers) };
+  const { init: i } = withTimeout({ ...(init || {}), method: "POST", headers, body: body != null ? JSON.stringify(body) : undefined }, timeoutMs);
   const res = await fetch(url, i);
   (i as any).__cancelTimeout?.();
   return handleResponse<T>(res);
 }
 
-// ---------- API surface ใช้งานจริงใน UI ----------
+export async function postForm<T>(
+  path: string,
+  form: FormData,
+  init?: RequestInit,
+  timeoutMs?: number
+): Promise<T> {
+  const url = buildUrl(path);
+  const headers = defaultHeaders(init?.headers); // ให้ browser ใส่ boundary
+  const { init: i } = withTimeout({ ...(init || {}), method: "POST", headers, body: form }, timeoutMs);
+  const res = await fetch(url, i);
+  (i as any).__cancelTimeout?.();
+  return handleResponse<T>(res);
+}
+
+/* ── Types ─────────────────────────────────────────────── */
 export type LicenseJson = {
   id: string;
   owner: string;
   plan: string;
-  valid_until: string; // ISO
+  valid_until: string;
   checksum: string;
 };
-
-/** ตรวจ license ล่าสุดจาก server */
-export async function verifyLicenseApi(): Promise<LicenseJson> {
-  return get<LicenseJson>("/api/license/latest", undefined, undefined, 10_000);
-}
-
-/** อัปโหลดไลเซนส์ใหม่ (รับ JSON ทั้งก้อน) */
 export type UploadResult =
-  | { ok: true; saved?: string; expiryOk?: boolean; message?: string }
+  | { ok: true; saved?: string; expiryOk?: boolean; message?: string; license?: LicenseJson }
   | { ok: false; error: string; message?: string };
 
-export async function uploadLicense(payload: unknown): Promise<UploadResult> {
+/* ── High-level API ────────────────────────────────────── */
+export async function getLatestLicense(): Promise<LicenseJson> {
+  return get<LicenseJson>("/api/license/latest", undefined, undefined, 10_000);
+}
+export async function uploadLicenseFile(file: File): Promise<UploadResult> {
+  const form = new FormData();
+  form.append("file", file);
+  return postForm<UploadResult>("/api/license/upload", form, undefined, 15_000);
+}
+export async function uploadLicenseJson(payload: unknown): Promise<UploadResult> {
   return postJson<UploadResult>("/api/license/upload", payload, undefined, 15_000);
 }
+export async function verifyLicenseApi(): Promise<{ ok: boolean; status: string; [k: string]: any }> {
+  return get("/api/license/verify", undefined, undefined, 10_000);
+}
+export async function generateLicense(params?: { owner?: string; plan?: string; days?: number }) {
+  return postJson<{ ok: true; file: string; license: LicenseJson } | { ok: false; error: string }>(
+    "/api/license/generate",
+    params || {},
+    undefined,
+    15_000
+  );
+}
+export async function pingForecast(): Promise<{ ok: boolean; service?: string; ts: number }> {
+  return get("/api/forecast/ping", undefined, undefined, 5_000);
+}
+export async function getServerStatus(): Promise<any> {
+  try {
+    return await get("/api/status", { t: Date.now() }, undefined, 5_000);
+  } catch {
+    return get("/status", { t: Date.now() }, undefined, 5_000);
+  }
+}
 
-/** ตัวอย่าง ping ไปยัง forecast service ที่ถูกครอบด้วย requireLicense() */
-export async function pingForecast(): Promise<{ ok: boolean; service: string; ts: number }> {
-  return get<{ ok: boolean; service: string; ts: number }>("/api/forecast/ping", undefined, undefined, 5_000);
+/* ── Admin auth (cookie-based) ─────────────────────────── */
+export async function adminLogin(username: string, password: string) {
+  return postJson<{ ok: boolean; user?: string; role?: string; error?: string }>(
+    "/admin/login",
+    { username, password },
+    undefined,
+    10_000
+  );
+}
+export async function adminLogout() {
+  try {
+    return await postJson<{ ok: boolean }>("/admin/logout", {});
+  } catch {
+    return get<{ ok: boolean }>("/admin/logout");
+  }
+}
+export async function adminMe() {
+  return get<{ ok: boolean; user?: string; role?: string }>("/admin/me", undefined, undefined, 10_000);
+}
+
+/* ── Back-compat (for header display / hard links) ─────── */
+export const API = apiBase();
+export const url = {
+  status: buildUrl("/api/status"),
+  ping: buildUrl("/api/forecast/ping"),
+  licenseLatest: buildUrl("/api/license/latest"),
+  licenseUpload: buildUrl("/api/license/upload"),
+  licenseVerify: buildUrl("/api/license/verify"),
+  licenseGenerate: buildUrl("/api/license/generate"),
+};
+
+/* ── Quick JSON fetch (minimal handling) ────────────────── */
+export async function j<T>(input: RequestInfo, init: RequestInit = {}): Promise<T> {
+  const r = await fetch(input, {
+    credentials: "include",
+    cache: "no-store",
+    headers: { "X-Requested-With": "AngelBotUI", ...(init.headers || {}) },
+    ...init,
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json() as Promise<T>;
+}
+
+// ---------- Session helpers ----------
+export async function sessionResetLife() {
+  return postJson<{ ok: boolean; session: any }>("/api/session/reset-life");
+}
+export async function sessionResetSession() {
+  return postJson<{ ok: boolean; session: any }>("/api/session/reset-session");
+}
+export async function sessionAddNote(note: string) {
+  return postJson<{ ok: boolean; session: any }>("/api/session/note", { note });
 }

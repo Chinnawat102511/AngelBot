@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "name": "AngelTeam",
+  "base": "http://127.0.0.1:3001/api/forecast",
+  "exp": "2025-11-10T05:57:03.443Z",
+  "token": "local-dev-token",
+  "service": "license-forecast",
+  "note": "generated-by-local-license-server"
+}

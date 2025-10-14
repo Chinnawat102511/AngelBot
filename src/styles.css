@@ -44,14 +44,27 @@
 /* ---------- Global ---------- */
 html, body, #root{ height:100%; }
 *{ box-sizing: border-box; }
-body { margin: 0; background: var(--abg); color: var(--txt); font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+body {
+  margin: 0;
+  background: var(--abg);
+  color: var(--txt);
+  font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+        Roboto, "Helvetica Neue", Arial;
+}
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 code, pre, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+
+/* pre: มี fallback เผื่อ browser ไม่รองรับ color-mix */
 pre {
+  background: #f3f6fa;
   background: color-mix(in oklab, var(--card) 90%, black 10%);
   padding: 10px 12px; border-radius: 8px; overflow: auto;
   border: 1px dashed var(--edge-soft);
+}
+.dark pre {
+  background: #0b1217;
+  background: color-mix(in oklab, var(--card) 85%, white 15%);
 }
 
 /* Container helper (หน้า App) */
@@ -62,10 +75,7 @@ pre {
 }
 
 /* ---------- Grid / Panel ---------- */
-.ab-grid{
-  display:grid; gap:10px;
-  grid-template-columns: 1fr 1fr;
-}
+.ab-grid{ display:grid; gap:10px; grid-template-columns: 1fr 1fr; }
 @media (max-width: 1100px){ .ab-grid{ grid-template-columns: 1fr; } }
 
 .ab-panel{
@@ -74,6 +84,7 @@ pre {
   border-radius:10px;
   padding:12px;
   box-shadow: var(--shadow);
+  animation: fadeInUp .18s ease-out both;
 }
 
 .ab-head{
@@ -87,16 +98,14 @@ pre {
 }
 
 .ab-row{ display:grid; grid-template-columns: repeat(12,1fr); gap:8px; }
-.ab-col-2{ grid-column: span 2; }
-.ab-col-3{ grid-column: span 3; }
-.ab-col-4{ grid-column: span 4; }
-.ab-col-6{ grid-column: span 6; }
+.ab-col-2{ grid-column: span 2; } .ab-col-3{ grid-column: span 3; }
+.ab-col-4{ grid-column: span 4; } .ab-col-6{ grid-column: span 6; }
 .ab-col-12{ grid-column: span 12; }
 
 label.ab-l{ font-size:12px; color:var(--muted); margin-bottom:4px; display:block; }
 
 /* ---------- Inputs / Select ---------- */
-.ab-input, .ab-select, textarea, input[type="text"], input[type="number"]{
+.ab-input, .ab-select, textarea, input[type="text"], input[type="number"], input[type="file"]{
   width:100%;
   background:#f6f8fb;
   color:var(--txt);
@@ -108,12 +117,14 @@ label.ab-l{ font-size:12px; color:var(--muted); margin-bottom:4px; display:block
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 .dark .ab-input, .dark .ab-select, .dark textarea,
-.dark input[type="text"], .dark input[type="number"]{ background:#0b1217; color:var(--txt); }
+.dark input[type="text"], .dark input[type="number"], .dark input[type="file"]{
+  background:#0b1217; color:var(--txt);
+}
 textarea{ min-height:110px; resize: vertical; }
 .ab-input:focus, .ab-select:focus, textarea:focus,
-input[type="text"]:focus, input[type="number"]:focus{
+input[type="text"]:focus, input[type="number"]:focus, input[type="file"]:focus{
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent);
+  box-shadow: 0 0 0 3px rgba(11,132,255,.25);
 }
 .ab-input[readonly]{ opacity:.8 }
 
@@ -137,7 +148,10 @@ input[type="text"]:focus, input[type="number"]:focus{
 .ab-btn-blue:hover{ filter: brightness(1.05); }
 
 .ab-btn-ghost{ background:transparent; border-color:var(--edge-soft); color:var(--txt); }
-.ab-btn-ghost:hover{ background: color-mix(in oklab, var(--edge) 10%, transparent); }
+.ab-btn-ghost:hover{
+  background: rgba(57,181,74,.1);
+  background: color-mix(in oklab, var(--edge) 10%, transparent);
+}
 
 /* ---------- Chips & status ---------- */
 .ab-chip{
@@ -179,7 +193,6 @@ input[type="text"]:focus, input[type="number"]:focus{
 .text-warning{ color:#ffd166; }
 .muted{ color: var(--muted); }
 
-/* tiny helpers */
 .badge-note{
   font-size:11px; background:#f6f8fb; border:1px solid #d7e1ea; padding:3px 8px; border-radius:999px;
 }
@@ -197,31 +210,28 @@ input[type="text"]:focus, input[type="number"]:focus{
   padding:4px 8px; border-radius:999px; font-size:12px; font-weight:800;
   border:1px solid rgba(0,0,0,.08);
 }
-.banner-ok    { border-color: color-mix(in oklab, var(--ok) 55%, transparent); }
-.banner-warn  { border-color: color-mix(in oklab, var(--warn) 55%, transparent); }
-.banner-err   { border-color: color-mix(in oklab, var(--err) 55%, transparent); }
+.banner-ok    { border-color: rgba(39,224,139,.55); }
+.banner-warn  { border-color: rgba(255,209,102,.55); }
+.banner-err   { border-color: rgba(255,107,107,.55); }
 
-.pill-ok   { background: color-mix(in oklab, var(--ok) 20%, transparent); color: #05301f; }
-.pill-warn { background: color-mix(in oklab, var(--warn) 25%, transparent); color: #3a2b00; }
-.pill-err  { background: color-mix(in oklab, var(--err) 20%, transparent); color: #390707; }
+.pill-ok   { background: rgba(39,224,139,.2); color: #05301f; }
+.pill-warn { background: rgba(255,209,102,.25); color: #3a2b00; }
+.pill-err  { background: rgba(255,107,107,.2); color: #390707; }
 
-/* ---------- Cards (ใช้กับ Verify / Forecast / Generate) ---------- */
+/* ---------- Cards ---------- */
 .card{
   background: var(--card);
-  border:1px solid color-mix(in oklab, var(--edge) 40%, transparent);
+  border:1px solid rgba(57,181,74,.4);
   border-radius: 10px;
   padding: 12px;
   box-shadow: var(--shadow);
 }
-.card h2{
-  margin: 0 0 8px;
-  font-size: 16px;
-  display:flex; align-items:center; gap:8px;
-}
+.card h2{ margin: 0 0 8px; font-size: 16px; display:flex; align-items:center; gap:8px; }
 
-/* ---------- Alerts (ผลลัพธ์/ข้อผิดพลาดใต้ปุ่ม) ---------- */
+/* ---------- Alerts ---------- */
 .alert{
   padding: 8px 10px; border-radius: 8px; border: 1px solid;
+  background: #eef3f8;
   background: color-mix(in oklab, var(--card) 85%, black 15%);
   margin-top: 10px;
 }
@@ -230,21 +240,81 @@ input[type="text"]:focus, input[type="number"]:focus{
 .alert-err  { border-color: var(--err); }
 
 /* ---------- Layout helpers ---------- */
-.flex      { display:flex; }
-.items-center { align-items:center; }
-.gap-6     { gap: 14px; }
-.mt-2      { margin-top: .5rem; }
-.mt-3      { margin-top: .75rem; }
-.mt-4      { margin-top: 1rem; }
-.mt-6      { margin-top: 1.5rem; }
-.mb-2      { margin-bottom: .5rem; }
-.mb-3      { margin-bottom: .75rem; }
-.mb-4      { margin-bottom: 1rem; }
-.w-full    { width:100%; }
+.flex{ display:flex; } .items-center{ align-items:center; }
+.gap-6{ gap: 14px; }
+.mt-2{ margin-top: .5rem; } .mt-3{ margin-top: .75rem; }
+.mt-4{ margin-top: 1rem; } .mt-6{ margin-top: 1.5rem; }
+.mb-2{ margin-bottom: .5rem; } .mb-3{ margin-bottom: .75rem; } .mb-4{ margin-bottom: 1rem; }
+.w-full{ width:100%; }
 
-/* ---------- Small animation for subtle entrance ---------- */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* ---------- Animations ---------- */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .animate-in { animation: fadeInUp .18s ease-out both; }
+
+/* === Toolbar (Home page) === */
+.ab-toolbar{
+  display: flex;
+  align-items: center;           /* จัดแนวแนวตั้งให้ปุ่ม/ข้อความอยู่กึ่งกลาง */
+  gap: 12px;
+  padding: 8px 10px;
+  background: #f6f7fb;
+  border: 1px solid #dfe3ea;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.ab-toolbar .ab-btn{
+  line-height: 1;                /* ให้ไอคอน/ข้อความอยู่กลางปุ่มจริง ๆ */
+  height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.ab-toolbar .ab-btn-blue{
+  background:#1677ff;
+  color:#fff;
+  border:1px solid #146be4;
+}
+
+.ab-toolbar .ab-btn-ghost{
+  background:#fff;
+  color:#222;
+  border:1px solid #cfd6df;
+}
+
+.ab-toolbar .ab-btn-green{
+  background:#19c37d;
+  color:#fff;
+  border:1px solid #15a56a;
+}
+
+.ab-toolbar .ab-btn-group{
+  display: inline-flex;
+  gap: 8px;
+}
+
+.ab-toolbar .ab-input-group{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;                       /* กล่องใส่โน้ตกินพื้นที่ที่เหลือ */
+  min-width: 260px;
+}
+
+.ab-toolbar .ab-input{
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cfd6df;
+  border-radius: 8px;
+  background: #fff;
+  outline: none;
+}
+
+@media (max-width: 680px){
+  .ab-toolbar{ flex-wrap: wrap; }
+  .ab-toolbar .ab-input-group{ min-width: 100%; }
+}

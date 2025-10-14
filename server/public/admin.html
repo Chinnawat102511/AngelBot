@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Angel License Admin</title>
+  <style>
+    body{font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;padding:24px;max-width:900px;margin:auto;background:#f5f5f5;color:#222}
+    h1{margin:0 0 12px}
+    .card{background:#fff;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 2px 6px rgba(0,0,0,0.1)}
+    label{display:block;margin-top:8px;font-weight:600}
+    input,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}
+    button{padding:10px 14px;border:0;border-radius:8px;cursor:pointer;background:#4caf50;color:#fff;font-weight:600}
+    button.secondary{background:#777}
+    button:hover{filter:brightness(0.95)}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .row>*{flex:1}
+    .ok{color:#0a7f3f}.bad{color:#b00020}
+    pre{background:#1e1f22;color:#e0e0e0;border-radius:8px;padding:12px;overflow:auto;font-size:13px}
+  </style>
+</head>
+<body>
+  <h1>Angel License Admin Panel</h1>
+
+  <!-- 🔐 Login / Logout -->
+  <div class="card">
+    <div class="row">
+      <div><label>Username</label><input id="u" value="admin"/></div>
+      <div><label>Password</label><input id="p" type="password" placeholder="••••••••"/></div>
+    </div><br/>
+    <div class="row">
+      <button id="btnLogin">Login</button>
+      <button id="btnLogout" class="secondary">Logout</button>
+      <button id="btnMe" class="secondary">Check Session</button>
+      <span id="me" style="align-self:center"></span>
+    </div>
+  </div>
+
+  <!-- 🔎 Inspect / Actions -->
+  <div class="card">
+    <div class="row">
+      <button id="btnVerify">Verify</button>
+      <button id="btnLatest">Latest</button>
+      <button id="btnSummary">Summary</button>
+    </div>
+    <pre id="out"></pre>
+  </div>
+
+  <!-- 🪪 Issue license -->
+  <div class="card">
+    <h3>Issue License</h3>
+    <div class="row">
+      <div><label>Owner</label><input id="owner" value="AngelTeam"/></div>
+      <div>
+        <label>Plan</label>
+        <select id="plan">
+          <option>pro</option><option>basic</option><option>trial</option>
+        </select>
+      </div>
+      <div><label>Days (default 30)</label><input id="days" type="number" min="1" max="365" placeholder="optional"/></div>
+    </div><br/>
+    <button id="btnIssue">Issue</button>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      // ---------- helpers ----------
+      const $ = (id) => document.getElementById(id);
+      const show = (obj) => { $('out').textContent = JSON.stringify(obj, null, 2); };
+      const API = {
+        login:   '/admin/login',
+        logout:  '/admin/logout',
+        me:      '/admin/me',
+        issue:   '/admin/license/issue',
+        verify:  '/api/license/verify',
+        latest:  '/api/license/latest',
+        summary: '/admin/summary' // ถ้าไม่มี endpoint นี้ ปุ่มจะยังรีเทิร์น error ดูผลใน out
+      };
+      async function go(url, opts={}) {
+        const res = await fetch(url, {
+          method: 'GET',
+          credentials: 'include', // << สำคัญ: ให้ส่ง/รับคุกกี้ session
+          headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) },
+          ...opts
+        });
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          const txt = await res.text();
+          return { ok:false, status:res.status, error:'non_json', body:txt };
+        }
+        return res.json();
+      }
+
+      // ---------- buttons ----------
+      $('btnLogin').addEventListener('click', async () => {
+        const body = { username: $('u').value.trim(), password: $('p').value };
+        const json = await go(API.login, { method:'POST', body: JSON.stringify(body) });
+        show(json);
+        $('me').textContent = json?.ok ? `Logged in as ${json.user}` : 'Login failed';
+        $('me').className = json?.ok ? 'ok' : 'bad';
+      });
+
+      $('btnLogout').addEventListener('click', async () => {
+        const json = await go(API.logout, { method:'POST' });
+        show(json);
+        $('me').textContent = 'Logged out';
+        $('me').className = '';
+      });
+
+      $('btnMe').addEventListener('click', async () => {
+        const json = await go(API.me);
+        show(json);
+        $('me').textContent = json?.ok ? `Logged in as ${json.user}` : 'Not logged in';
+        $('me').className = json?.ok ? 'ok' : 'bad';
+      });
+
+      $('btnVerify').addEventListener('click', async () => show(await go(API.verify)));
+      $('btnLatest').addEventListener('click', async () => show(await go(API.latest)));
+      $('btnSummary').addEventListener('click', async () => show(await go(API.summary)));
+
+      $('btnIssue').addEventListener('click', async () => {
+        const owner = $('owner').value.trim() || 'AngelTeam';
+        const plan  = $('plan').value || 'pro';
+        const d     = $('days').value;
+        const body  = d ? { owner, plan, days:Number(d) } : { owner, plan };
+        const json  = await go(API.issue, { method:'POST', body: JSON.stringify(body) });
+        show(json);
+      });
+    });
+  </script>
+</body>
+</html>

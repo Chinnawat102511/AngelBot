@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "composite": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "types": ["node"]           // 👈 ให้ node อยู่ไฟล์นี้
-  },
-  "include": ["vite.config.ts"]
-}

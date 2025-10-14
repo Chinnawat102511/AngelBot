@@ -1,22 +1,20 @@
 // src/App.tsx
-import { useEffect, useState } from "react";
-import LicenseBanner from "./components/LicenseBanner";
+import { useEffect, useMemo, useState } from "react";
+import LicenseBanner from "@components/LicenseBanner";
+import LicenseGate from "@components/LicenseGate";
 import { LicenseProvider } from "./context/LicenseContext";
-import { LicenseGate } from "./components/LicenseGate";
+import "./styles/app.css";
 
-// Router
 import {
   BrowserRouter,
   Routes,
   Route,
-  Link,
   Navigate,
-  useLocation,
+  NavLink,
 } from "react-router-dom";
 
-// เพจ
-import Home from "./pages/Home";
-import AdminPage from "./pages/AdminPage";
+import Home from "@pages/Home";
+import AdminPage from "@pages/AdminPage";
 
 function Layout({
   theme,
@@ -27,57 +25,62 @@ function Layout({
   setTheme: (t: "light" | "dark") => void;
   children: React.ReactNode;
 }) {
-  const loc = useLocation();
+  const appName = useMemo(
+    () => import.meta.env.VITE_APP_NAME || "Angel Forecast",
+    []
+  );
+  const apiBaseLabel = useMemo(
+    () => import.meta.env.VITE_LICENSE_BASE_URL?.trim() || "/api",
+    []
+  );
 
   return (
     <div
       className={`min-h-screen flex flex-col ${
         theme === "dark"
           ? "bg-gray-900 text-gray-100"
-          : "bg-gradient-to-b from-gray-50 to-white text-gray-900"
+          : "bg-white text-gray-900"
       }`}
     >
-      {/* แบนเนอร์สถานะ License */}
+      {/* แบนเนอร์แจ้งสถานะไลเซนส์ */}
       <LicenseBanner />
 
       <div className="max-w-5xl mx-auto px-4 py-10 flex-1 w-full grid gap-6">
         {/* Header */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">AngelBot License Console</h1>
+            <h1 className="text-2xl font-bold">{appName} — License Console</h1>
 
-            {/* เมนูนำทาง */}
-            <nav className="text-sm flex gap-3">
-              <Link
+            {/* เมนูนำทางแบบ “ปุ่ม” */}
+            <nav className="text-sm flex gap-2">
+              <NavLink
                 to="/"
-                className={`px-2 py-1 rounded border ${
-                  loc.pathname === "/"
-                    ? "bg-gray-200 dark:bg-gray-800"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
+                className={({ isActive }) =>
+                  `ab-chip ${isActive ? "active" : ""}`
+                }
+                end
               >
                 Home
-              </Link>
-              <Link
+              </NavLink>
+
+              <NavLink
                 to="/admin"
-                className={`px-2 py-1 rounded border ${
-                  loc.pathname.startsWith("/admin")
-                    ? "bg-gray-200 dark:bg-gray-800"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
+                className={({ isActive }) =>
+                  `ab-chip ${isActive ? "active" : ""}`
+                }
               >
                 Admin
-              </Link>
+              </NavLink>
             </nav>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="text-sm opacity-70">
-              API: <code>http://localhost:3001</code>
+              API: <code>{apiBaseLabel}</code>
             </div>
             <button
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              className="border border-gray-400 rounded px-2 py-1 text-xs hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+              className="border rounded px-2 py-1 text-xs"
               title={theme === "light" ? "Switch to dark" : "Switch to light"}
             >
               {theme === "light" ? "🌙 Dark" : "☀️ Light"}
@@ -100,7 +103,7 @@ function Layout({
 export default function App() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  // เปลี่ยนคลาสบน <body> เพื่อให้โหมดสีทำงาน
+  // sync class บน <body> ให้ธีมทำงาน
   useEffect(() => {
     document.body.classList.remove("light", "dark");
     document.body.classList.add(theme === "dark" ? "dark" : "light");
