@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "status": "valid",
+  "days_left": 30,
+  "enforce": true,
+  "require_checksum": false,
+  "file": "yxZ-jZfsNy.json",
+  "owner": "AngelTeam",
+  "plan": "pro",
+  "valid_until": "2025-11-13T14:27:08.829Z",
+  "reason": "skip_checksum"
+}

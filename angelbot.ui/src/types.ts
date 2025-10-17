@@ -1,41 +1,54 @@
-// src/types.ts
+// ==============================
+// AngelBot UI — shared types
+// ==============================
+export type AccountType = "PRACTICE" | "REAL";
 
-export type TradeResult = 'WIN' | 'LOSE' | 'DRAW';
+export interface BotConfig {
+  orderDuration: string;      // ex. "1 Minute"
+  amount: number;             // $ per order
+  internalMs: number;         // poll/interval ms
+  assetsCsv: string;          // "XAUUSD,EURUSD"
+  strategy: string;           // ex. "Baseline"
+  baseEquityInput: number;    // base equity (UI)
+}
+
+export type BotStatus = "running" | "paused" | "stopped";
+
+export interface BotState {
+  status: BotStatus;
+  connected: boolean;
+  accountType: AccountType;
+  baseEquity: number;
+  realizedPL: number;
+  equityLive: number;
+}
+
+export type Direction = "CALL" | "PUT";
+export type Result = "WIN" | "LOSE" | "EQUAL" | string;
 
 export interface Trade {
-  id: number;
-  ts: number;              // epoch ms
-  symbol: string;
-  side: 'BUY' | 'SELL';
-  size: number;
-  reqPrice: number;
-  fillPrice: number;
-  pnl: number;
-  mgStep?: number;
-  result?: TradeResult;
-  strategy?: string;
+  id: string;
+  timestamp: string;          // ISO
+  asset: string;
+  direction: Direction;
+  amount: number;
+  mgStep: number;
+  duration: string;           // "1m"
+  result: Result;
+  result_pl?: number;
+  strategy: string;
 }
 
-export interface EngineStats {
-  orders: number;
-  win: number;
-  lose: number;
-  draw: number;
-  session_pnl: number;
+export type GuardMode = "Percent" | "Value";
+
+export interface RiskGuard {
+  enabled: boolean;
+  mode: GuardMode;
+  value: number;              // % or $
 }
 
-export interface EngineStatus {
-  running: boolean;
-  connected: boolean;
-  balance: number;
-  account_type: string;
-  stats: EngineStats;
-
-  // helper สำหรับ UI
-  tradesCount?: number;
-  lastTrade?: Trade | null;
-
-  // 👇 เพิ่ม optional fields ที่หน้าจออ้างถึง
-  session_started_at?: number;   // epoch ms (ถ้า backend จะส่ง)
-  max_mg_step?: number;          // ขั้นสูงสุดของ MG (ถ้ามี)
+export interface ApiResponse<T> {
+  ok: boolean;
+  data?: T;
+  error?: string;
 }

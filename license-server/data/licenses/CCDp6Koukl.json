@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "status": "valid",
+  "days_left": 30,
+  "enforce": true,
+  "require_checksum": false,
+  "file": "CCDp6Koukl.json",
+  "owner": "AngelTeam",
+  "plan": "pro",
+  "valid_until": "2025-11-13T13:21:12.039Z",
+  "reason": "skip_checksum"
+}

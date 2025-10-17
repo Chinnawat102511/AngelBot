@@ -1,5 +1,5 @@
 {
-  "type": "commonjs",
+  "type": "module",
   "name": "angelbot",
   "version": "1.0.0",
   "description": "AngelBot License Management & Forecast System",
@@ -17,8 +17,12 @@
     "// preview": "5174 = local build, 5175 = prod build",
     "preview": "vite preview --port 5174 --strictPort",
     "preview:prod": "vite preview --port 5175 --strictPort",
+    "// prod serve (dist + proxy)": "เสิร์ฟไฟล์ build พร้อม proxy ไป backend:3001",
+    "serve:dist": "node serve-dist.cjs",
+    "build:serve": "npm run build && npm run serve:dist",
+    "start:prod": "start cmd /c \"npm run server\" && npm run build:serve",
     "// server": "-------------------- License server / tools --------------------",
-    "preserver": "node scripts/auto-license.js",
+    "preserver": "node scripts/auto-license.mjs",
     "server:only": "node license-server/server.js",
     "server": "npm run preserver && npm run server:only",
     "// license jobs": "auto-refresh / check / fetch / near-expiry / generate",
@@ -44,9 +48,9 @@
     "stop_server:bat": "cmd /c stop_server.bat",
     "gen_license:bat": "cmd /c gen_license.bat --owner=AngelTeam --plan=pro --days=30",
     "gen_license:exp": "cmd /c gen_license.bat --owner=AngelTeam --plan=pro --expires=2025-12-31",
-    "// engine (optional ESM server)": "ถ้าต้องรัน angelbot-engine ที่เป็น ESM ให้ใช้ไฟล์ .mjs ภายในโฟลเดอร์นั้น",
-    "engine": "node angelbot-engine/server.js",
-    "engine:watch": "nodemon --watch angelbot-engine --ext js,json --exec \"node angelbot-engine/server.js\"",
+    "// engine (trading server, ESM)": "รัน mock trading engine ที่ server/server.js",
+    "engine": "node server/server.js",
+    "engine:watch": "nodemon --watch server --ext js,json --exec \"node server/server.js\"",
     "// client helper": "ทดสอบ client ตรวจ license (ถ้ามีไฟล์ client/test-license.mjs)",
     "client:test": "node client/test-license.mjs",
     "// quality": "ตรวจสุขภาพโปรเจกต์",
@@ -54,7 +58,10 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "format": "prettier -w .",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true});require('fs').rmSync('node_modules',{recursive:true,force:true});\"",
-    "test": "echo \"No test specified\" && exit 0"
+    "test": "echo \"No test specified\" && exit 0",
+    "// dev all-in-one": "เปิด UI + Engine พร้อมกัน",
+    "dev:ui": "vite --config vite.config.ts --port 5173",
+    "dev:all": "concurrently -k -n UI,ENGINE -c green,magenta \"npm run dev:ui\" \"npm run engine:watch\""
   },
   "keywords": [
     "angelbot",
@@ -66,11 +73,13 @@
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "express-rate-limit": "^8.1.0",
+    "http-proxy-middleware": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
@@ -78,7 +87,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.0.0",
-    "sonner": "^2.0.7"
+    "sonner": "^2.0.7",
+    "technicalindicators": "^3.1.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
@@ -89,6 +99,7 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^8.2.2",
     "eslint": "^9.0.0",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.6",

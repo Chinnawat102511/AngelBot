@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "status": "valid",
+  "days_left": 30,
+  "enforce": true,
+  "require_checksum": false,
+  "file": "tX1LdPu6CH.json",
+  "owner": "AngelTeam",
+  "plan": "pro",
+  "valid_until": "2025-11-13T15:00:55.373Z",
+  "reason": "skip_checksum"
+}

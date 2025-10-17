@@ -58,6 +58,36 @@ module.exports = function attachCompat(app, opts = {}) {
     res.json({ ok: true, connected, running, session });
   });
 
+   /** ⬇️ วางเพิ่มตรงนี้ **/
+   app.get('/status', (_req, res) => {
+   const flat = { running: ENGINE.running, paused: ENGINE.paused }
+   res.json({ ok: true, ...flat, connected: true, account: 'PRACTICE', status: flat })
+   })
+
+  app.get('/api/status', (_req, res) => {
+  const flat = { running: ENGINE.running, paused: ENGINE.paused }
+  res.json({ ok: true, ...flat, connected: true, account: 'PRACTICE', status: flat })
+})
+
+app.get('/api/connect', (_req, res) => {
+  res.json({ ok: true, connected: true })
+})
+app.get('/connect', (_req, res) => {
+  res.json({ ok: true, connected: true })
+})
+
+app.get('/engine/equity', (_req, res) => {
+  res.json({
+    ok: true,
+    equity: EQUITY,
+    equity_base: EQUITY_BASE,
+    daily_pnl: DAILY_PNL,
+    balance: EQUITY,
+    currency: 'USD'
+  })
+})
+/** ⬆️ วางเพิ่มตรงนี้ **/
+
   app.post('/license/check', (req, res) => {
     const found = readLatestLicense(LICENSE_DIR);
     let daysLeft = 30, holder = 'AngelTeam', pathStr = path.join(LICENSE_DIR, 'license_output_id.json');

@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* เล็กน้อยให้ตัวหนังสือดูกลมกลืนขึ้น */
+html, body, #root { height: 100%; }
+body { @apply bg-white text-gray-900; }

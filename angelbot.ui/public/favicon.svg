@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- พื้นหลังวงกลมเขียว -->
+  <circle cx="32" cy="32" r="28" fill="#10b981"/>
+  
+  <!-- วงแหวนทอง -->
+  <ellipse cx="32" cy="14" rx="14" ry="4" fill="none" stroke="#facc15" stroke-width="3"/>
+
+  <!-- ปีกซ้าย -->
+  <path d="M12 30c4-3 10-6 16-7-3 4-5 9-8 14-3 4-5 5-8 3-2-2-2-5 0-10z" fill="#fef9c3"/>
+
+  <!-- ปีกขวา -->
+  <path d="M52 30c-4-3-10-6-16-7 3 4 5 9 8 14 3 4 5 5 8 3 2-2 2-5 0-10z" fill="#fef9c3"/>
+
+  <!-- หน้ายิ้ม -->
+  <path d="M22 40c3 3 7 5 10 5s7-2 10-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <circle cx="26" cy="32" r="2" fill="white"/>
+  <circle cx="38" cy="32" r="2" fill="white"/>
+</svg>
