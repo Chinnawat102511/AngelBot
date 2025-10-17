@@ -7,8 +7,13 @@ import type {
   AccountType, BotConfig, BotState, GuardMode, RiskGuard, Trade
 } from "./types";
 
-// ⬇️ เพิ่มบรรทัดนี้
+// ===== panels (มีอยู่เดิม) =====
 import SessionStats from "./components/SessionStats";
+import StrategyPanel from "./components/StrategyPanel";
+
+// ===== Auto Strategy (ใหม่) =====
+import AutoStrategyPanel from "./components/AutoStrategyPanel";
+import { useStrategyRunner, AutoStrategyConfig } from "./hooks/useStrategyRunner";
 
 // ---------- utils ----------
 function cx(...ns: (string | false | null | undefined)[]) { return ns.filter(Boolean).join(" "); }
@@ -38,15 +43,34 @@ function makeCSV(trades: Trade[]) {
   return [header, ...rows].join("\n");
 }
 function csv(name:string, rows:string[][]){ downloadCSV(name, rows.map(r=>r.join(",")).join("\n")); }
-function beep(freq=880, sec=0.2){ try{
-  const c=new (window.AudioContext||(window as any).webkitAudioContext)();
-  const o=c.createOscillator(); const g=c.createGain();
-  o.type="sine"; o.frequency.value=freq; o.connect(g); g.connect(c.destination);
-  g.gain.setValueAtTime(0.0001,c.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.35,c.currentTime+0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+sec);
-  o.start(); o.stop(c.currentTime+sec+0.01); setTimeout(()=>c.close(), (sec+0.2)*1000);
-} catch {}}
+function beep(freq = 880, sec = 0.2) {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+    // ✅ ถ้ายังไม่ได้คลิกหน้าเว็บ ให้รอ click ครั้งแรกแล้ว resume เสียง
+    if (ctx.state === "suspended") {
+      document.body.addEventListener("click", () => ctx.resume(), { once: true });
+    }
+
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.value = freq;
+    o.connect(g);
+    g.connect(ctx.destination);
+
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + sec);
+
+    o.start();
+    o.stop(ctx.currentTime + sec + 0.01);
+
+    setTimeout(() => ctx.close(), (sec + 0.2) * 1000);
+  } catch (err) {
+    console.warn("Beep error:", err);
+  }
+}
 
 // ---------- new UI types ----------
 type RefMode = "Peak" | "Base";
@@ -296,6 +320,26 @@ export default function App() {
     csv(`angelbot_guard_log_${ts}.csv`, rows);
   }
 
+  // ========== Auto Strategy: state + hook ==========
+  const [autoCfg, setAutoCfg] = useState<AutoStrategyConfig>({
+    enabled: false,
+    name: "followTrend",
+    window: 20,
+    minWinRate: 45,
+    action: "start-pause",
+  });
+
+  // ส่ง controller จาก App ให้ hook (ไม่ import API ใน hook)
+  const { lastDecision, lastAction } = useStrategyRunner(
+    trades,
+    autoCfg,
+    connection.connected,
+    {
+      start: onStart,
+      resume: onResume,
+    }
+  );
+
   // UI states
   const controlsDisabled = !connection.connected;
   const isRunning = botState?.status==="running";
@@ -510,13 +554,27 @@ export default function App() {
 
           {/* RIGHT */}
           <div className="md:col-span-2 space-y-4">
-             {/* ⬇️ เพิ่มบล็อก Session Stats ตรงนี้ */}
-             <SessionStats
-             trades={trades}
-             baseEquity={baseEquity}
-             realizedPL={realizedPL}
-             title="Session Stats"
+
+            {/* Session Stats */}
+            <SessionStats
+              trades={trades}
+              baseEquity={baseEquity}
+              realizedPL={realizedPL}
+              title="Session Stats"
             />
+
+            {/* Strategy Sandbox (paper) */}
+            <StrategyPanel trades={trades} />
+
+            {/* Auto Strategy Engine (จริง) */}
+            <AutoStrategyPanel
+              cfg={autoCfg}
+              onChange={setAutoCfg}
+              lastDecision={lastDecision}
+              lastAction={lastAction}
+            />
+
+            {/* Asset Live Board */}
             <div className="rounded-lg bg-white shadow p-4">
               <div className="flex items-center justify-between">
                 <div className="font-medium">Asset Live Board <span className="text-xs opacity-60">(mock ทุก 2 วินาที)</span></div>
@@ -529,6 +587,7 @@ export default function App() {
               <div className="text-xs opacity-60">Streamed from server every 60s — or live via SSE</div>
             </div>
 
+            {/* Trade History */}
             <div className="rounded-lg bg-white shadow p-4">
               <div className="font-medium mb-2">Trade History</div>
               <div className="overflow-auto max-h-[70vh]">
