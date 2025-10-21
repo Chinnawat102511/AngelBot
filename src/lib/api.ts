@@ -1,7 +1,9 @@
 // src/lib/api.ts
 // Lightweight API client for AngelBot UI (with admin-cookie support)
 
-/* ── Errors ───────────────────────────────────────────── */
+//
+// ── Errors ─────────────────────────────────────────────
+//
 export class LicenseError extends Error {
   code = "license_expired";
   constructor(message = "License expired or invalid. Please upload a new license.") {
@@ -9,6 +11,7 @@ export class LicenseError extends Error {
     this.name = "LicenseError";
   }
 }
+
 export class APIError<T = unknown> extends Error {
   status: number;
   payload?: T;
@@ -19,16 +22,20 @@ export class APIError<T = unknown> extends Error {
     this.payload = payload;
   }
 }
+
 export function isLicenseError(e: unknown): e is LicenseError {
   return e instanceof LicenseError || (typeof e === "object" && !!e && (e as any).code === "license_expired");
 }
 
-/* ── Base URL & URL builder ───────────────────────────── */
+//
+// ── Base URL & URL builder ─────────────────────────────
+//
 export function apiBase(): string {
   const v = (import.meta as any)?.env?.VITE_LICENSE_BASE_URL;
   const base = (v && String(v)) || "http://localhost:3001";
   return base.replace(/\/+$/, "");
 }
+
 export function buildUrl(path: string, query?: Record<string, any>): string {
   const base = apiBase();
   const u = new URL(path.startsWith("/") ? path : `/${path}`, base);
@@ -41,7 +48,9 @@ export function buildUrl(path: string, query?: Record<string, any>): string {
   return u.toString();
 }
 
-/* ── Fetch helpers ────────────────────────────────────── */
+//
+// ── Fetch helpers ──────────────────────────────────────
+//
 type TimeoutInit = RequestInit & { __cancelTimeout?: () => void };
 
 const withCreds = (init?: RequestInit): TimeoutInit =>
@@ -75,9 +84,18 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   const ctype = res.headers.get("content-type") || "";
   if (ctype.includes("application/json")) {
-    try { data = text ? JSON.parse(text) : undefined; } catch { data = undefined; }
+    try {
+      data = text ? JSON.parse(text) : undefined;
+    } catch {
+      data = undefined;
+    }
   } else {
-    try { data = text ? JSON.parse(text) : undefined; } catch { data = undefined; }
+    // พยายาม parse เป็น JSON ถ้าเซิร์ฟเวอร์ส่ง HTML มาก็จะเป็น undefined
+    try {
+      data = text ? JSON.parse(text) : undefined;
+    } catch {
+      data = undefined;
+    }
   }
 
   const msg = (data?.message ?? data?.error ?? "").toString().toLowerCase();
@@ -103,7 +121,10 @@ export async function get<T>(
   timeoutMs?: number
 ): Promise<T> {
   const url = buildUrl(path, query);
-  const { init: i } = withTimeout({ ...(init || {}), method: "GET", headers: defaultHeaders(init?.headers) }, timeoutMs);
+  const { init: i } = withTimeout(
+    { ...(init || {}), method: "GET", headers: defaultHeaders(init?.headers) },
+    timeoutMs
+  );
   const res = await fetch(url, i);
   (i as any).__cancelTimeout?.();
   return handleResponse<T>(res);
@@ -117,7 +138,10 @@ export async function postJson<T>(
 ): Promise<T> {
   const url = buildUrl(path);
   const headers = { "Content-Type": "application/json", ...defaultHeaders(init?.headers) };
-  const { init: i } = withTimeout({ ...(init || {}), method: "POST", headers, body: body != null ? JSON.stringify(body) : undefined }, timeoutMs);
+  const { init: i } = withTimeout(
+    { ...(init || {}), method: "POST", headers, body: body != null ? JSON.stringify(body) : undefined },
+    timeoutMs
+  );
   const res = await fetch(url, i);
   (i as any).__cancelTimeout?.();
   return handleResponse<T>(res);
@@ -130,14 +154,16 @@ export async function postForm<T>(
   timeoutMs?: number
 ): Promise<T> {
   const url = buildUrl(path);
-  const headers = defaultHeaders(init?.headers); // ให้ browser ใส่ boundary
+  const headers = defaultHeaders(init?.headers); // ให้ browser ใส่ boundary เอง
   const { init: i } = withTimeout({ ...(init || {}), method: "POST", headers, body: form }, timeoutMs);
   const res = await fetch(url, i);
   (i as any).__cancelTimeout?.();
   return handleResponse<T>(res);
 }
 
-/* ── Types ─────────────────────────────────────────────── */
+//
+// ── Types ───────────────────────────────────────────────
+//
 export type LicenseJson = {
   id: string;
   owner: string;
@@ -145,25 +171,61 @@ export type LicenseJson = {
   valid_until: string;
   checksum: string;
 };
+
 export type UploadResult =
   | { ok: true; saved?: string; expiryOk?: boolean; message?: string; license?: LicenseJson }
   | { ok: false; error: string; message?: string };
 
-/* ── High-level API ────────────────────────────────────── */
+export type BotState = {
+  status: "running" | "paused" | "stopped";
+  startedAt?: string | null;
+  pausedAt?: string | null;
+  updatedAt?: string;
+};
+
+export type LicenseStatus = {
+  valid?: boolean;
+  key?: string;
+  [k: string]: any;
+};
+
+export type ConnectionStatus = {
+  connected?: boolean;
+  accountType?: string;
+  email?: string;
+  [k: string]: any;
+};
+
+//
+// ── High-level API (เดิม) ───────────────────────────────
+//
 export async function getLatestLicense(): Promise<LicenseJson> {
   return get<LicenseJson>("/api/license/latest", undefined, undefined, 10_000);
 }
+
 export async function uploadLicenseFile(file: File): Promise<UploadResult> {
   const form = new FormData();
   form.append("file", file);
   return postForm<UploadResult>("/api/license/upload", form, undefined, 15_000);
 }
+
 export async function uploadLicenseJson(payload: unknown): Promise<UploadResult> {
   return postJson<UploadResult>("/api/license/upload", payload, undefined, 15_000);
 }
-export async function verifyLicenseApi(): Promise<{ ok: boolean; status: string; [k: string]: any }> {
-  return get("/api/license/verify", undefined, undefined, 10_000);
+
+/**
+ * verify license – รองรับทั้งแบบ GET และ fallback เป็น POST
+ * เพื่อให้ใช้ได้กับ backend หลายรูปแบบ
+ */
+export async function verifyLicenseApi(): Promise<{ ok: boolean; status?: string; [k: string]: any }> {
+  try {
+    return await get("/api/license/verify", undefined, undefined, 10_000);
+  } catch {
+    // fallback: บางโปรเจ็กต์ใช้ POST /api/license/verify
+    return postJson("/api/license/verify", {}, undefined, 10_000);
+  }
 }
+
 export async function generateLicense(params?: { owner?: string; plan?: string; days?: number }) {
   return postJson<{ ok: true; file: string; license: LicenseJson } | { ok: false; error: string }>(
     "/api/license/generate",
@@ -172,9 +234,11 @@ export async function generateLicense(params?: { owner?: string; plan?: string; 
     15_000
   );
 }
+
 export async function pingForecast(): Promise<{ ok: boolean; service?: string; ts: number }> {
   return get("/api/forecast/ping", undefined, undefined, 5_000);
 }
+
 export async function getServerStatus(): Promise<any> {
   try {
     return await get("/api/status", { t: Date.now() }, undefined, 5_000);
@@ -183,7 +247,9 @@ export async function getServerStatus(): Promise<any> {
   }
 }
 
-/* ── Admin auth (cookie-based) ─────────────────────────── */
+//
+// ── Admin auth (cookie-based) ───────────────────────────
+//
 export async function adminLogin(username: string, password: string) {
   return postJson<{ ok: boolean; user?: string; role?: string; error?: string }>(
     "/admin/login",
@@ -192,6 +258,7 @@ export async function adminLogin(username: string, password: string) {
     10_000
   );
 }
+
 export async function adminLogout() {
   try {
     return await postJson<{ ok: boolean }>("/admin/logout", {});
@@ -199,11 +266,14 @@ export async function adminLogout() {
     return get<{ ok: boolean }>("/admin/logout");
   }
 }
+
 export async function adminMe() {
   return get<{ ok: boolean; user?: string; role?: string }>("/admin/me", undefined, undefined, 10_000);
 }
 
-/* ── Back-compat (for header display / hard links) ─────── */
+//
+// ── Back-compat (for header display / hard links) ───────
+//
 export const API = apiBase();
 export const url = {
   status: buildUrl("/api/status"),
@@ -214,7 +284,9 @@ export const url = {
   licenseGenerate: buildUrl("/api/license/generate"),
 };
 
-/* ── Quick JSON fetch (minimal handling) ────────────────── */
+//
+// ── Quick JSON fetch (minimal handling) ──────────────────
+//
 export async function j<T>(input: RequestInfo, init: RequestInit = {}): Promise<T> {
   const r = await fetch(input, {
     credentials: "include",
@@ -226,7 +298,9 @@ export async function j<T>(input: RequestInfo, init: RequestInit = {}): Promise<
   return r.json() as Promise<T>;
 }
 
-// ---------- Session helpers ----------
+//
+// ── Session helpers (เดิม) ──────────────────────────────
+//
 export async function sessionResetLife() {
   return postJson<{ ok: boolean; session: any }>("/api/session/reset-life");
 }
@@ -235,4 +309,43 @@ export async function sessionResetSession() {
 }
 export async function sessionAddNote(note: string) {
   return postJson<{ ok: boolean; session: any }>("/api/session/note", { note });
+}
+
+//
+// ── เพิ่ม: Helpers สำหรับ Bot/State/Connection ─────────
+//
+
+/** อ่านสถานะจาก /api/state (รองรับทั้ง flat และ nested) */
+export async function getBotState(): Promise<{
+  state: BotState;
+  license?: LicenseStatus;
+  connection?: ConnectionStatus;
+}> {
+  const raw: any = await get("/api/state", undefined, undefined, 10_000);
+  // normalize
+  const s: BotState =
+    raw?.state && typeof raw.state === "object"
+      ? (raw.state as BotState)
+      : ({
+          status: raw?.status ?? "stopped",
+          startedAt: raw?.startedAt ?? null,
+          pausedAt: raw?.pausedAt ?? null,
+          updatedAt: raw?.updatedAt,
+        } as BotState);
+
+  const license = raw?.license ?? raw?.state?.license;
+  const connection = raw?.connection ?? raw?.state?.connection;
+  return { state: s, license, connection };
+}
+
+/** ควบคุมบอทผ่าน convenience endpoints */
+export const startBot = () => postJson("/api/start", {}, undefined, 10_000);
+export const pauseBot = () => postJson("/api/pause", {}, undefined, 10_000);
+export const resumeBot = () => postJson("/api/resume", {}, undefined, 10_000);
+export const stopBot = () => postJson("/api/stop", {}, undefined, 10_000);
+export const resetBot = () => postJson("/api/reset", {}, undefined, 10_000);
+
+/** Connect endpoint (ใช้อีเมล/ประเภทบัญชี) */
+export function connectApi(payload: { email?: string; accountType?: string }) {
+  return postJson<{ ok: boolean; connection?: ConnectionStatus }>("/api/connect", payload, undefined, 10_000);
 }

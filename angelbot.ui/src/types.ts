@@ -1,54 +1,47 @@
-// ==============================
-// AngelBot UI — shared types
-// ==============================
+// ====== Shared types used by UI/API ======
 export type AccountType = "PRACTICE" | "REAL";
-
-export interface BotConfig {
-  orderDuration: string;      // ex. "1 Minute"
-  amount: number;             // $ per order
-  internalMs: number;         // poll/interval ms
-  assetsCsv: string;          // "XAUUSD,EURUSD"
-  strategy: string;           // ex. "Baseline"
-  baseEquityInput: number;    // base equity (UI)
-}
-
-export type BotStatus = "running" | "paused" | "stopped";
-
-export interface BotState {
-  status: BotStatus;
-  connected: boolean;
-  accountType: AccountType;
-  baseEquity: number;
-  realizedPL: number;
-  equityLive: number;
-}
-
-export type Direction = "CALL" | "PUT";
-export type Result = "WIN" | "LOSE" | "EQUAL" | string;
-
-export interface Trade {
-  id: string;
-  timestamp: string;          // ISO
-  asset: string;
-  direction: Direction;
-  amount: number;
-  mgStep: number;
-  duration: string;           // "1m"
-  result: Result;
-  result_pl?: number;
-  strategy: string;
-}
 
 export type GuardMode = "Percent" | "Value";
 
 export interface RiskGuard {
   enabled: boolean;
-  mode: GuardMode;
-  value: number;              // % or $
+  mode: GuardMode;      // Percent | Value
+  value: number;        // percent or money
 }
 
-export interface ApiResponse<T> {
-  ok: boolean;
-  data?: T;
-  error?: string;
+export interface BotConfig {
+  orderDuration: "1 Minute" | "3 Minutes" | "5 Minutes";
+  amount: number;        // order size ($)
+  internalMs: number;    // interval between decisions
+  assetsCsv: string;     // selected symbols
+  strategy: string;
+  baseEquityInput: number;
 }
+
+export interface BotState {
+  status: "running" | "paused" | "stopped";
+  connected: boolean;
+  accountType: AccountType;
+  balance?: number;
+}
+
+export interface Trade {
+  id: number;
+  timestamp: number;             // ms epoch (normalized)
+  asset: string;
+  direction: "CALL" | "PUT";
+  amount: number;
+  mgStep: number;
+  duration: string;              // e.g. "1m"
+  result: "WIN" | "LOSE" | "EQUAL"; // normalized (DRAW -> EQUAL)
+  result_pl: number;             // P/L of this trade
+  strategy: string;
+}
+
+// Generic API response used by helpers
+export type ApiResponse<T> = { ok: true; data: T } | { ok: false; error?: string };
+
+// (สำหรับของเดิมที่อาจยังอ้างถึง)
+export type LicenseStatus =
+  | { ok: true; key: string; plan: string; expiresAt: string; remote: { enabled: boolean } }
+  | { ok: false; key: string | null; reason: string; remote: { enabled: boolean } };
