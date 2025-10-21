@@ -1,137 +1,69 @@
 import React, { useMemo } from "react";
 import type { Trade } from "../types";
 
-type Props = {
-  trades: Trade[];
-  baseEquity: number;
-  realizedPL: number;
-  title?: string;
-};
-
-function fmt(n: number) { return n.toLocaleString(undefined, { maximumFractionDigits: 2 }); }
-function money(n: number) { return (n >= 0 ? "+" : "") + "$" + fmt(n); }
-function pct(n: number) { return fmt(n) + "%"; }
-
-export default function SessionStats({ trades, baseEquity, realizedPL, title = "Session Stats" }: Props) {
-  const stats = useMemo(() => {
-    const total = trades.length;
-    const wins = trades.filter(t => t.result === "WIN").length;
-    const loses = trades.filter(t => t.result === "LOSE").length;
-    const equals = trades.filter(t => t.result === "EQUAL").length;
-
-    const grossProfit = trades.reduce((s, t) => s + Math.max(0, t.result_pl ?? 0), 0);
-    const grossLoss   = trades.reduce((s, t) => s + Math.min(0, t.result_pl ?? 0), 0);
-    const net         = grossProfit + grossLoss;
-
-    const winRate = total ? (wins / total) * 100 : 0;
-    const avgPerTrade = total ? net / total : 0;
-
-    // equity path & drawdown
-    let equity = baseEquity;
-    let peak = baseEquity;
-    let trough = baseEquity;
-    let maxDD = 0;
-    for (let i = trades.length - 1; i >= 0; i--) {
-      equity += trades[i].result_pl ?? 0;
-      if (equity > peak) peak = equity;
-      if (equity < trough) trough = equity;
-      const dd = peak - equity;
-      if (dd > maxDD) maxDD = dd;
-    }
-    const maxDDPct = peak > 0 ? (maxDD / peak) * 100 : 0;
-
-    // streaks
-    let bestWinStreak = 0, bestLoseStreak = 0, curW = 0, curL = 0;
-    for (let i = trades.length - 1; i >= 0; i--) {
-      const r = trades[i].result;
-      if (r === "WIN") { curW++; bestWinStreak = Math.max(bestWinStreak, curW); curL = 0; }
-      else if (r === "LOSE") { curL++; bestLoseStreak = Math.max(bestLoseStreak, curL); curW = 0; }
-      else { curW = 0; curL = 0; }
-    }
-
-    const startedAt = trades[trades.length-1]?.timestamp ?? null;
-    const lastAt = trades[0]?.timestamp ?? null;
-
-    return {
-      total, wins, loses, equals,
-      winRate, grossProfit, grossLoss, net, avgPerTrade,
-      peak, trough, maxDD, maxDDPct,
-      bestWinStreak, bestLoseStreak,
-      startedAt, lastAt,
-      equityNow: baseEquity + realizedPL,
-    };
-  }, [trades, baseEquity, realizedPL]);
-
-  function exportStats() {
-    const rows = [
-      ["Metric","Value"],
-      ["Total trades", String(stats.total)],
-      ["Wins", String(stats.wins)],
-      ["Loses", String(stats.loses)],
-      ["Equals", String(stats.equals)],
-      ["Win rate", pct(stats.winRate)],
-      ["Gross profit", money(stats.grossProfit)],
-      ["Gross loss", money(stats.grossLoss)],
-      ["Net P/L", money(stats.net)],
-      ["Avg / trade", money(stats.avgPerTrade)],
-      ["Peak equity", "$" + fmt(stats.peak)],
-      ["Trough equity", "$" + fmt(stats.trough)],
-      ["Max drawdown", "$" + fmt(stats.maxDD)],
-      ["Max drawdown %", pct(stats.maxDDPct)],
-      ["Best win streak", String(stats.bestWinStreak)],
-      ["Best lose streak", String(stats.bestLoseStreak)],
-      ["Started at", stats.startedAt ? new Date(stats.startedAt).toLocaleString() : "-"],
-      ["Last trade", stats.lastAt ? new Date(stats.lastAt).toLocaleString() : "-"],
-      ["Equity (now)", "$" + fmt(stats.equityNow)],
-    ];
-    const csv = rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const ts = new Date().toISOString().slice(0,19).replace(/[-:T]/g,"");
-    a.href = url; a.download = `angelbot_session_stats_${ts}.csv`;
-    a.click(); URL.revokeObjectURL(url);
-  }
-
+function Box({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-white shadow p-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="font-medium">{title}</div>
-        <button onClick={exportStats} className="px-2 py-1 rounded bg-slate-800 text-white text-xs">
-          Export Stats CSV
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-        <Stat label="Total" value={stats.total} />
-        <Stat label="Wins" value={stats.wins} accent="text-emerald-600" />
-        <Stat label="Loses" value={stats.loses} accent="text-rose-600" />
-        <Stat label="Equals" value={stats.equals} />
-
-        <Stat label="Win rate" value={pct(stats.winRate)} />
-        <Stat label="Net P/L" value={money(stats.net)} accent={stats.net>=0?"text-emerald-600":"text-rose-600"} />
-        <Stat label="Avg / trade" value={money(stats.avgPerTrade)} />
-        <Stat label="Gross +" value={money(stats.grossProfit)} accent="text-emerald-600" />
-
-        <Stat label="Gross -" value={money(stats.grossLoss)} accent="text-rose-600" />
-        <Stat label="Peak" value={"$"+fmt(stats.peak)} />
-        <Stat label="Trough" value={"$"+fmt(stats.trough)} />
-        <Stat label="Max DD" value={`${"$"+fmt(stats.maxDD)} (${pct(stats.maxDDPct)})`} />
-
-        <Stat label="Best win streak" value={stats.bestWinStreak} />
-        <Stat label="Best lose streak" value={stats.bestLoseStreak} />
-        <Stat label="Started" value={stats.startedAt ? new Date(stats.startedAt).toLocaleTimeString() : "-"} />
-        <Stat label="Last trade" value={stats.lastAt ? new Date(stats.lastAt).toLocaleTimeString() : "-"} />
-      </div>
+    <div className="p-3 rounded-lg bg-white border shadow-sm">
+      <div className="text-xs opacity-60">{label}</div>
+      <div className="text-lg font-semibold">{value}</div>
+      {sub ? <div className="text-[11px] opacity-60 mt-0.5">{sub}</div> : null}
     </div>
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: React.ReactNode; accent?: string }) {
+function sum<T>(arr: T[], f: (x: T) => number) { return arr.reduce((s, x) => s + f(x), 0); }
+
+export default function SessionStats({
+  trades,
+  baseEquity,
+  realizedPL,
+  title = "Session Stats",
+}: {
+  trades: Trade[];
+  baseEquity: number;
+  realizedPL: number;
+  title?: string;
+}) {
+  const stats = useMemo(() => {
+    const total = trades.length;
+    const win = trades.filter(t => t.result === "WIN").length;
+    const lose = trades.filter(t => t.result === "LOSE").length;
+    const equal = trades.filter(t => t.result === "EQUAL").length;
+    const gross = sum(trades, t => t.result_pl);
+    const avg = total ? gross / total : 0;
+    const peak = trades.length ? Math.max(...trades.map((_, i) =>
+      baseEquity + sum(trades.slice(0, i + 1), t => t.result_pl)
+    )) : baseEquity;
+    const trough = trades.length ? Math.min(...trades.map((_, i) =>
+      baseEquity + sum(trades.slice(0, i + 1), t => t.result_pl)
+    )) : baseEquity;
+
+    return { total, win, lose, equal, gross, avg, peak, trough };
+  }, [trades, baseEquity]);
+
+  const fmt = (n: number) => `$${n.toFixed(2)}`;
+
   return (
-    <div className="p-2 rounded border bg-slate-50">
-      <div className="text-[11px] opacity-70">{label}</div>
-      <div className={`text-base font-semibold ${accent ?? ""}`}>{value}</div>
+    <div className="rounded-lg bg-white shadow p-4">
+      <div className="font-medium mb-2">{title}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Box label="Total" value={stats.total} />
+        <Box label="Wins" value={stats.win} />
+        <Box label="Losses" value={stats.lose} />
+        <Box label="Equal" value={stats.equal} />
+
+        <Box label="Win %" value={`${stats.total ? ((stats.win / stats.total) * 100).toFixed(2) : "0.00"}%`} />
+        <Box label="Net P/L" value={<span className={stats.gross >= 0 ? "text-emerald-600" : "text-rose-600"}>
+          {(stats.gross >= 0 ? "+" : "") + fmt(stats.gross)}
+        </span>} />
+        <Box label="Avg / trade" value={fmt(stats.avg)} />
+        <Box label="Realized P/L" value={<span className={realizedPL >= 0 ? "text-emerald-600" : "text-rose-600"}>
+          {(realizedPL >= 0 ? "+" : "") + fmt(realizedPL)}
+        </span>} />
+
+        <Box label="Peak Equity" value={fmt(stats.peak)} sub={`from base ${fmt(baseEquity)}`} />
+        <Box label="Trough Equity" value={fmt(stats.trough)} />
+      </div>
     </div>
   );
 }
